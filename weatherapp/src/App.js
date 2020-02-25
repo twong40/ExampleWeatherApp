@@ -5,8 +5,10 @@ class App extends React.Component {
   constructor() {
     super();
     this.state = {
-      weatherData: [],
-      inputData: "",
+      weatherData: {},
+      inputCity: "",
+      inputState: "",
+      inputZip: "",
       errors: ""
     };
     this.changeValue = this.changeValue.bind(this);
@@ -19,16 +21,43 @@ class App extends React.Component {
 
   handleSubmit(e) {
     e.preventDefault();
+    let params = "";
+    if (this.state.inputZip) {
+      params = "zip=" + this.state.inputZip;
+    } else {
+      if (this.state.inputCity && this.state.inputState) {
+        params = "q=" + this.state.inputCity + "," + this.state.inputState;
+      } else if (this.state.inputCity) {
+        params = "q=" + this.state.inputCity;
+      } else if (this.state.inputState) {
+        params = "q=" + this.state.inputState;
+      }
+    }
     fetch(
-      "https://api.openweathermap.org/data/2.5/weather?q=London,uk&appid=" +
+      "https://api.openweathermap.org/data/2.5/weather?" +
+        params +
+        "&appid=" +
         APPID
-    );
+    )
+      .then(res => res.json())
+      .then(data => {
+        if (data.cod != 200) {
+          this.setState({
+            errors: data.message
+          });
+        } else {
+          this.setState({
+            errors: ""
+          });
+        }
+        this.setState({ weatherData: data });
+      });
   }
+
   findCoordinates() {
     function success(position) {
       console.log(position.coords.latitude, position.coords.longitude);
     }
-
     function error(error) {
       console.log(error);
     }
@@ -40,26 +69,46 @@ class App extends React.Component {
     }
   }
   render() {
+    const isButtonValid =
+      this.state.inputCity || this.state.inputState || this.state.inputZip;
     return (
       <div className="container">
         <form onSubmit={this.handleSubmit}>
+          <h1>Search</h1>
           <label>
-            <h1>Search</h1>
             <br />
             <input
               type="text"
-              name="inputData"
+              name="inputCity"
               placeholder="City"
-              value={this.state.inputData}
+              value={this.state.inputCity}
               onChange={this.changeValue}
             />
           </label>
           <br />
-          <input
-            type="submit"
-            value="Submit"
-            disabled={!this.state.inputData}
-          />
+          <label>
+            <br />
+            <input
+              type="text"
+              name="inputState"
+              placeholder="State"
+              value={this.state.inputState}
+              onChange={this.changeValue}
+            />
+          </label>
+          <br />
+          <label>
+            <br />
+            <input
+              type="text"
+              name="inputZip"
+              placeholder="Zipcode"
+              value={this.state.inputZip}
+              onChange={this.changeValue}
+            />
+          </label>
+          <br />
+          <input type="submit" value="Submit" disabled={!isButtonValid} />
           <button
             type="button"
             className="btn btn-primary"
